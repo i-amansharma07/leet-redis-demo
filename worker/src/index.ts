@@ -4,15 +4,28 @@ const redisClient = createClient();
 
 connectToRedis();
 
-async function processCode(submission: string) {
+interface ElementType {
+  user_id: string;
+  problem_id: string;
+  lang: string;
+  code: string;
+  status?: string;
+}
+
+async function processCode(context: ElementType) {
   console.log("processing code.....");
 
-  return await new Promise((resolve) =>
+  await new Promise((resolve) =>
     setTimeout(() => {
-      resolve("Accepted");
+      if (true) {
+        context["status"] = "Accepted";
+        resolve("Accepted");
+      }
       console.log("processing complete");
     }, 2000)
   );
+
+  await redisClient.PUBLISH("results", JSON.stringify(context));
 }
 
 async function connectToRedis() {
@@ -21,13 +34,10 @@ async function connectToRedis() {
     console.log("WORKER CONNETED TO REDIS");
 
     while (1) {
-      const submission = await redisClient.BRPOP("submissions", 0);
+      const { element } = await redisClient.BRPOP("submissions", 0);
+      const parsedElement = JSON.parse(element);
 
-      // const formattedSubmission = JSON.parse(submission);
-      // console.log("formattedSubmission", formattedSubmission);
-      // console.log(typeof formattedSubmission, formattedSubmission?.user_id);
-      const result = await processCode(submission);
-      console.log("result : ", result, "\n \n");
+      await processCode(parsedElement);
     }
   } catch (e: unknown) {
     //@ts-ignore
